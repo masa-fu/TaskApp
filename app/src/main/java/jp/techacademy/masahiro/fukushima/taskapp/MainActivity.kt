@@ -10,6 +10,7 @@ import android.content.Intent
 import android.support.v7.app.AlertDialog
 import android.app.AlarmManager
 import android.app.PendingIntent
+import io.realm.RealmResults
 
 const val EXTRA_TASK = "jp.techacademy.masahiro.fukushima.taskapp.TASK"
 
@@ -32,8 +33,10 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         // FloatingActionButtonをタップしたときの処理
-        fab.setOnClickListener { view ->
+        fab.setOnClickListener { _ ->
+            // Intentのインスタンスを作成 InputActivityクラス
             val intent = Intent(this@MainActivity, InputActivity::class.java)
+            // 画面遷移を開始
             startActivity(intent)
         }
 
@@ -46,12 +49,19 @@ class MainActivity : AppCompatActivity() {
         // ListViewの設定
         mTaskAdapter = TaskAdapter(this@MainActivity)
 
+        // 検索ボタンをタップしたときの処理
+        searchButton.setOnClickListener {
+            searchCategory()
+        }
+
         // ListViewをタップしたときの処理
         listView1.setOnItemClickListener { parent, _, position, _ ->
             // 入力・編集する画面に遷移させる
             val task = parent.adapter.getItem(position) as Task
+            // Intentのインスタンスを作成 InputActivityクラス
             val intent = Intent(this@MainActivity, InputActivity::class.java)
             intent.putExtra(EXTRA_TASK, task.id)
+            // 画面遷移を開始
             startActivity(intent)
         }
 
@@ -103,6 +113,27 @@ class MainActivity : AppCompatActivity() {
         // "date"で日時 Sort.DESCENDINGで降順
         val taskRealmResults = mRealm.where(Task::class.java).findAll().sort("date", Sort.DESCENDING)
 
+        // 上記の結果を、TaskListとしてセットする
+        mTaskAdapter.taskList = mRealm.copyFromRealm(taskRealmResults)
+
+        // TaskのListView用のアダプタに渡す
+        listView1.adapter = mTaskAdapter
+
+        // 表示を更新するために、アダプタにデータが変更されたことを知らせる
+        mTaskAdapter.notifyDataSetChanged()
+    }
+
+    private fun searchCategory() {
+        var taskRealmResults:RealmResults<Task>
+
+        if(categoryEditText.length() != 0){
+            taskRealmResults =
+                mRealm.where(Task::class.java).equalTo("category", categoryEditText.text.toString())
+                    .findAll().sort("date", Sort.DESCENDING)
+        }
+        else {
+            taskRealmResults = mRealm.where(Task::class.java).findAll().sort("date", Sort.DESCENDING)
+        }
         // 上記の結果を、TaskListとしてセットする
         mTaskAdapter.taskList = mRealm.copyFromRealm(taskRealmResults)
 
